@@ -10,7 +10,8 @@ module.exports = (app) => {
     GraphQLID,
     GraphQLInt,
     GraphQLSchema,
-    GraphQLList
+    GraphQLList,
+    GraphQLNonNull
   } = graphql
 
   const BookType = new GraphQLObjectType({
@@ -39,9 +40,10 @@ module.exports = (app) => {
       age: { type: GraphQLInt },
       books: {
         type: GraphQLList(BookType),
-        resolve (parent, args) {
+        async resolve (parent, args) {
           const { id } = parent
-        // return _.filter(books, { authorId: id })
+          const book = await app.db.collection('books').findOne({ _id: ObjectId(id) })
+          return book
         }
       }
     })
@@ -67,21 +69,24 @@ module.exports = (app) => {
         args: {
           id: { type: GraphQLID }
         },
-        resolve (parent, args) {
+        async resolve (parent, args) {
           const { id } = args
-        // return _.find(authors, { id })
+          const author = await app.db.collection('authors').findOne({ _id: ObjectId(id) })
+          return author
         }
       },
       books: {
         type: new GraphQLList(BookType),
-        resolve (parent, args) {
-        // return books
+        async resolve (parent, args) {
+          const books = await app.db.collection('books').find().toArray()
+          return books
         }
       },
       authors: {
         type: new GraphQLList(AuthorType),
-        resolve (parent, args) {
-        // return authors
+        async resolve (parent, args) {
+          const authors = await app.db.collection('authors').find().toArray()
+          return authors
         }
       }
     }
@@ -93,8 +98,8 @@ module.exports = (app) => {
       addAuthor: {
         type: AuthorType,
         args: {
-          name: { type: GraphQLString },
-          age: { type: GraphQLInt }
+          name: { type: new GraphQLNonNull(GraphQLString) },
+          age: { type: new GraphQLNonNull(GraphQLInt) }
         },
         resolve (parent, args) {
           const { name, age } = args
@@ -116,9 +121,9 @@ module.exports = (app) => {
       addBook: {
         type: BookType,
         args: {
-          name: { type: GraphQLString },
-          genre: { type: GraphQLString },
-          authorId: { type: GraphQLID }
+          name: { type: new GraphQLNonNull(GraphQLString) },
+          genre: { type: new GraphQLNonNull(GraphQLString) },
+          authorId: { type: new GraphQLNonNull(GraphQLID) }
         },
         resolve (parent, args) {
           const { name, genre, authorId } = args
